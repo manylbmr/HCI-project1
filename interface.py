@@ -5,12 +5,12 @@ import joblib
 import numpy as np
 import re
 from PIL import Image
-import pandas as pd  # Pour gérer les résultats
+import pandas as pd 
 from movie_recommender_llama import recommend 
-from movie_recommender_DL import recommend_DL# Assurez-vous que cette fonction est correctement importée
+from movie_recommender_DL import recommend_DL
 
 
-# Chargement des animations Lottie
+# Load lottie animations
 def load_lottie(url):
     r = requests.get(url)
     if r.status_code != 200:
@@ -27,9 +27,12 @@ def load_lottie(url):
 
 
 def parse_movie_string(movie_data):
-    """Parse les données de film qu'elles soient sous forme de chaîne ou de dictionnaire"""
+    """
+    Parse a movie string or dictionary into a structured format.
+    If the input is a string, it splits it into key-value pairs based on the presence of ':'.
+    """
     if isinstance(movie_data, str):
-        # Traitement pour les chaînes de caractères
+        # Processing for string values
         data = {}
         parts = [p.strip() for p in movie_data.split('\n') if p.strip()]
         for part in parts:
@@ -38,10 +41,9 @@ def parse_movie_string(movie_data):
                 data[key.strip()] = val.strip()
         return data
     elif isinstance(movie_data, dict):
-        # Si c'est déjà un dictionnaire
         return movie_data
     else:
-        # Pour les autres types (comme Ellipsis)
+        # For other types (like Ellipsis)
         return {
             'Title': 'Unknown Movie',
             'Description': 'No description available',
@@ -52,9 +54,9 @@ def parse_movie_string(movie_data):
 
 def get_movie_recommendations(query):
     try:
-        raw_results = recommend(query)  # Votre fonction originale
+        raw_results = recommend(query)
         
-        # Filtrage des résultats invalides
+        # Remove None, empty strings, and Ellipsis
         valid_results = [r for r in raw_results if r and not isinstance(r, type(...))]
         
         return [parse_movie_string(m) for m in valid_results]
@@ -69,7 +71,7 @@ animation_header2 = load_lottie("https://assets4.lottiefiles.com/packages/lf20_1
 
 st_lottie(animation_header2, speed=1, height=150, key="forth")
 
-# Section de formulaire
+# Form section
 st.write('---')
 st.subheader('Please enter your information to get movie recommendations:')
 
@@ -95,13 +97,13 @@ with st.container():
     with left_column:
         st_lottie(animation_header, speed=1, height=400, key="second")
 
-# Bouton de recommandation
+# Reccommendation button
 if st.button('Get Recommendations'):
-    # Préparation de la requête
+    # Prepare request
     query = f"{movies_you_like} {description} {mood} {Gender} {age} {occupation}"
     
-    # Appel au modèle
-    recommendations = get_movie_recommendations(description)
+    # Model call
+    recommendations = get_movie_recommendations(query)
     
     
     
@@ -111,31 +113,28 @@ if st.button('Get Recommendations'):
     if not recommendations:
         st.warning("No valid recommendations could be generated.")
     else:
-        for movie in recommendations:
-            with st.expander(f"{movie.get('Title', 'Unknown Movie')}"):
-                st.write(f"**Year:** {movie.get('Release Year', 'N/A')}")
-                st.write(f"**Rating:** {movie.get('Rating', 'N/A')}")
-                st.write(f"**Genre:** {movie.get('Type', 'N/A')}")
-                st.write(f"**Director:** {movie.get('Director', 'N/A')}")
-                st.write(f"**Cast:** {movie.get('Cast', 'N/A')}")
-                st.write(f"**Description:** {movie.get('Description', 'No description available')}")
+        for i, movie in enumerate(recommendations, 1):
+            similarity_score = float(movie.get('similarity', 0))
+            with st.expander(f"{i}. {movie.get('title', 'Unknown Movie')} (Similarity: {similarity_score:.2%})"):
+                st.write(f"**Year:** {movie.get('release_year', 'N/A')}")
+                st.write(f"**Rating:** {movie.get('rating', 'N/A')}")
+                st.write(f"**Genre:** {movie.get('listed_in', 'N/A')}")
+                st.write(f"**Director:** {movie.get('director', 'N/A')}")
+                st.write(f"**Cast:** {movie.get('cast', 'N/A')}")
+                st.write(f"**Description:** {movie.get('description', 'No description available')}")
     
-    # Affichage des résultats
-    st.subheader("We recommend these movies:")
+#     # Display of results
+#     st.subheader("We recommend these movies:")
     
-    for i, movie in enumerate(recommendations, 1):
-        with st.expander(f"{i}. {movie['Title']} (Similarity: {movie['Similarity']:.0%})"):
-            st.write(f"**Genre:** Action/Sci-Fi")  # À adapter avec vos données réelles
-            st.write(f"**Rating:** 8.8/10")
-            st.write("**Description:** A mind-bending thriller about...")
-        
-    
-    
-    
-    
+#     for i, movie in enumerate(recommendations, 1):
+#         print(movie)
+#         with st.expander(f"{i}. {movie['title']} (Similarity: {movie['similarity']:.0%})"):
+#             st.write(f"**Genre:** Action/Sci-Fi") 
+#             st.write(f"**Rating:** 8.8/10")
+#             st.write("**Description:** A mind-bending thriller about...")
 
-# Footer (conservé de votre version originale)
-footer = """<style>..."""
-st.markdown(footer, unsafe_allow_html=True)
+# # Footer
+# footer = """<style>..."""
+# st.markdown(footer, unsafe_allow_html=True)
 
 

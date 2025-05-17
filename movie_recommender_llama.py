@@ -15,24 +15,27 @@ def create_textual_representation(row):
 
 
 def recommend (movie_desc):
+    
     import pandas as pd
+    import faiss
+    import numpy as np
+    import requests
+    
+    import streamlit as st 
+    
     df = pd.read_csv('netflix_titles.csv')
     import ollama
     response = ollama.chat(model='llama3', messages=[{'role': 'user', 'content': 'Hello!'}])
     print(response['message']['content'])
 
 
-    import faiss
-    import numpy as np
-    import requests
+    
 
     df["textual_representation"]=df.apply(create_textual_representation, axis=1)
 
 
     dim =4096
     index = faiss.IndexFlatL2(dim)
-
-
 
 
     index = faiss.read_index('index')
@@ -42,12 +45,20 @@ def recommend (movie_desc):
                             'prompt': movie_desc,})
     embedding = res.json()['embedding']
     embedding = np.array(embedding, dtype='float32')
-    D, I = index.search(embedding.reshape(1, -1), 5)
-    print("Top 5 similar movies:")
-    best_matches= np.array(df['textual_representation'])[I.flatten()]
-    for i, match in enumerate(best_matches):
-        print(f"Match {i+1}: {match}")
-        print("--------------------------------------------------")
-    return best_matches[:3]
+    
+    distances, index = index.search(embedding.reshape(1, -1), 5)
+
+    results = []
+    for i, (dist, idx) in enumerate(zip(distances[0], index[0])):
+        # st.write(f"Match {dist+1}: {df.iloc[idx].title} - Similarity: {dist:.4f}")
+        similarity = 1 / (1+dist)
+        
+        movie_info = df.iloc[idx].to_dict()
+        movie_info['similarity'] = similarity
+        # print(f"Match {i+1}: {match} - Similarity: {dist:.4f}")
+        # print("--------------------------------------------------")
+        results.append(movie_info)
+      
+    return results
 
 
