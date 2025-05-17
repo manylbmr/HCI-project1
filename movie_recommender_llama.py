@@ -47,14 +47,22 @@ def recommend (movie_desc):
     embedding = np.array(embedding, dtype='float32')
     
     distances, index = index.search(embedding.reshape(1, -1), 5)
+    
+    # Normalize similarities
+    raw_similarities = [1 / (1 + dist) for dist in distances[0]]
+    min_sim = min(raw_similarities)
+    max_sim = max(raw_similarities)
+    # Avoid division by zero if all similarities are equal
+    range_sim = max_sim - min_sim if max_sim != min_sim else 1e-6
 
     results = []
     for i, (dist, idx) in enumerate(zip(distances[0], index[0])):
         # st.write(f"Match {dist+1}: {df.iloc[idx].title} - Similarity: {dist:.4f}")
-        similarity = 1 / (1+dist)
+        raw_sim = 1 / (1 + dist)
+        normalized_sim = (raw_sim - min_sim) / range_sim
         
         movie_info = df.iloc[idx].to_dict()
-        movie_info['similarity'] = similarity
+        movie_info['similarity'] = normalized_sim
         # print(f"Match {i+1}: {match} - Similarity: {dist:.4f}")
         # print("--------------------------------------------------")
         results.append(movie_info)
